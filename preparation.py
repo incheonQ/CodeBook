@@ -1,4 +1,5 @@
 import pandas as pd
+import seaborn as sns
 from sklearn.metrics import mean_absolute_error, r2_score
 from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
@@ -7,6 +8,13 @@ from scipy.stats import describe
 from statsmodels.stats.outliers_influence import variance_inflation_factor
 import logging
 from typing import Optional
+import matplotlib.font_manager as fm
+
+def hangul():
+    # 한글 폰트 설정
+    font_path = 'C:/Windows/Fonts/malgun.ttf'  # 맑은 고딕 폰트 경로
+    font_name = fm.FontProperties(fname=font_path).get_name()
+    plt.rc('font', family=font_name)
 
 def advanced_describe(
     df: pd.DataFrame,
@@ -21,8 +29,9 @@ def advanced_describe(
       If False, use default float formatting.
 
     Returns:
-    - pd.DataFrame: A DataFrame containing the descriptive statistics, including Min, Median, Mean, 
-      Max, Variance, Standard Deviation, Skewness, Kurtosis, and Variance Inflation Factor (VIF).
+    - pd.DataFrame: A DataFrame containing the descriptive statistics, including Q1, Q3, 
+      Q1-1.5*IQR, Q3+1.5*IQR, Min, Median, Mean, Max, Variance, Standard Deviation, 
+      Skewness, Kurtosis, and Variance Inflation Factor (VIF).
     """
     # Set pandas display option based on display_setting
     if display_setting:
@@ -55,7 +64,18 @@ def advanced_describe(
         vif.append(variance_inflation_factor(numerical_.values, i))
 
     # Create result DataFrame
+    q1 = numerical_.quantile(0.25)
+    q3 = numerical_.quantile(0.75)
+    iqr = q3 - q1
+    lower_bound = q1 - 1.5 * iqr
+    upper_bound = q3 + 1.5 * iqr
+
+    # 결과 DataFrame 수정
     result = pd.DataFrame({
+        'Q1': q1,
+        'Q3': q3,
+        'Q1-1.5*IQR': lower_bound,
+        'Q3+1.5*IQR': upper_bound,
         'Min': minn,
         'Median': median,
         'Mean': meann,
@@ -68,6 +88,24 @@ def advanced_describe(
     }, index=numerical_.columns)
 
     return result
+
+def box_plot(df, y_col):
+    
+    q1 = df[y_col].quantile(0.25)
+    q3 = df[y_col].quantile(0.75)
+    iqr = q3 - q1
+    lower_bound = round(q1 - 1.5 * iqr, 2)
+    upper_bound = round(q3 + 1.5 * iqr, 2)
+    mean = round(df[y_col].mean(), 2)
+    median = round(df[y_col].median(), 2)
+
+
+    names = ["lower_bound", "upper_bound", 'q1', 'q3', "mean", "median"]
+    values = [lower_bound, upper_bound, q1, q3, mean, median]
+    sns.boxplot(y=y_col, data=df)
+    for name, value in zip(names, values):
+        plt.hlines(y=value, xmin=-0.5, xmax=0.5, color='r')
+        plt.text(x=0.5, y=value, s=f'{name}:{value}', color='r')
 
 
 
