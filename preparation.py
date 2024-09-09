@@ -3,6 +3,73 @@ from sklearn.metrics import mean_absolute_error, r2_score
 from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
 import numpy as np
+from scipy.stats import describe
+from statsmodels.stats.outliers_influence import variance_inflation_factor
+import logging
+from typing import Optional
+
+def advanced_describe(
+    df: pd.DataFrame,
+    display_setting: Optional[bool] = False
+) -> pd.DataFrame:
+    """
+    Generate an enhanced descriptive statistics summary for numerical columns in a DataFrame.
+
+    Parameters:
+    - df (pd.DataFrame): The input DataFrame with numerical columns to summarize.
+    - display_setting (Optional[bool]): If True, format floating-point numbers with 2 decimal places. 
+      If False, use default float formatting.
+
+    Returns:
+    - pd.DataFrame: A DataFrame containing the descriptive statistics, including Min, Median, Mean, 
+      Max, Variance, Standard Deviation, Skewness, Kurtosis, and Variance Inflation Factor (VIF).
+    """
+    # Set pandas display option based on display_setting
+    if display_setting:
+        pd.set_option('display.float_format', '{:.2f}'.format)
+    else:
+        pd.set_option('display.float_format', None)
+
+    # Select numerical columns
+    numerics = ['int16', 'int32', 'int64', 'float16', 'float32', 'float64']
+    numerical_ = df.select_dtypes(include=numerics)
+
+    if numerical_.empty:
+        logging.warning("No numerical columns found in DataFrame.")
+        return pd.DataFrame()
+
+    # Compute descriptive statistics
+    d = describe(numerical_, axis=0)._asdict()
+    minn = d['minmax'][0]
+    maxx = d['minmax'][1]
+    median = numerical_.median()
+    meann = d['mean']
+    variance = d['variance']
+    std = np.sqrt(variance)
+    skewness = d['skewness']
+    kurtosis = d['kurtosis']
+
+    # Calculate Variance Inflation Factor (VIF)
+    vif = []
+    for i in range(numerical_.shape[1]):
+        vif.append(variance_inflation_factor(numerical_.values, i))
+
+    # Create result DataFrame
+    result = pd.DataFrame({
+        'Min': minn,
+        'Median': median,
+        'Mean': meann,
+        'Max': maxx,
+        'Variance': variance,
+        'Std. Dev.': std,
+        'Skewness': skewness,
+        'Kurtosis': kurtosis,
+        'VIF': vif
+    }, index=numerical_.columns)
+
+    return result
+
+
 
 def get_dataset(
     df: pd.DataFrame,
