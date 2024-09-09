@@ -1,0 +1,86 @@
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.cluster import KMeans
+from sklearn.metrics import silhouette_score
+from scipy.spatial.distance import cdist
+import warnings
+
+warnings.filterwarnings('ignore')
+
+# 나머지 코드는 그대로 유지
+
+def KMeans_Elbow(X, max_k=10):
+    """
+    엘보우 방법을 사용하여 K-means 클러스터링의 최적 K 값을 찾습니다.
+    
+    Args:
+        X (array-like): 클러스터링할 데이터
+        max_k (int): 테스트할 최대 클러스터 수
+    """
+
+    distortions = []
+    inertias = []
+    K = range(1, max_k+1)
+
+    for k in K:
+        kmeanModel = KMeans(n_clusters=k, random_state=42)
+        kmeanModel.fit(X)
+
+        distortions.append(sum(np.min(cdist(X, kmeanModel.cluster_centers_,
+                                            'euclidean'), axis=1)) / X.shape[0])
+        inertias.append(kmeanModel.inertia_)
+
+    plt.plot(K, distortions, 'bx-')
+    plt.xlabel('클러스터 수 (K)')
+    plt.ylabel('왜곡도')
+    plt.title('엘보우 방법을 이용한 최적 K 선택')
+    plt.show()
+
+
+def draw_silhouette_layer(result_clusterer):
+    """
+    실루엣 점수를 히트맵으로 시각화합니다.
+    
+    Args:
+        result_clusterer (list): 클러스터 수와 실루엣 점수 쌍의 리스트
+    """
+
+    result = pd.DataFrame(result_clusterer, columns=["n_clusters", "silhouette_score"])
+    pivot_km = pd.pivot_table(result, index="n_clusters", values="silhouette_score")
+
+    plt.figure()
+    sns.heatmap(pivot_km, annot=True, linewidths=.5, fmt='.3f', cmap=sns.cm._rocket_lut)
+    plt.title('클러스터 수에 따른 실루엣 점수')
+    plt.xlabel('클러스터 수')
+    plt.ylabel('실루엣 점수')
+    plt.tight_layout()
+    plt.show()
+
+
+def KMeans(data, param_init='random', param_n_init=10, param_max_iter=300):
+    """
+    K-means 클러스터링을 수행하고 엘보우 방법과 실루엣 점수를 사용하여 결과를 평가합니다.
+    
+    Args:
+        data (array-like): 클러스터링할 데이터
+        param_init (str): 초기 중심점 설정 방법
+        param_n_init (int): 초기 중심점 설정 시도 횟수
+        param_max_iter (int): 최대 반복 횟수
+    """
+
+    clusters_range = range(2, 10)
+    results_KMeans = []
+
+    print("엘보우 방법")
+    KMeans_Elbow(data, 10)
+
+    print("실루엣 분석")
+    for i in clusters_range:
+        km = KMeans(n_clusters=i, init=param_init, n_init=param_n_init, max_iter=param_max_iter, random_state=0)
+        km_cluster_labels = km.fit_predict(data)
+        silhouette_avg = silhouette_score(data, km_cluster_labels)
+        results_KMeans.append([i, silhouette_avg])
+
+    draw_silhouette_layer(results_KMeans)
