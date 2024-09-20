@@ -10,11 +10,14 @@ import logging
 from typing import Optional
 import matplotlib.font_manager as fm
 
-def hangul():
+def hangul(retina=False):
     # 한글 폰트 설정
     font_path = 'C:/Windows/Fonts/malgun.ttf'  # 맑은 고딕 폰트 경로
     font_name = fm.FontProperties(fname=font_path).get_name()
     plt.rc('font', family=font_name)
+
+    if retina:
+        %config InlineBackend.figure_format = 'retina'
 
 def advanced_describe(
     df: pd.DataFrame,
